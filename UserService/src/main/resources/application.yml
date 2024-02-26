@@ -1,0 +1,97 @@
+server:
+  port: 8081
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/microservice
+    username : root
+    password : Dar@4311
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+  application:
+    name: USER-SERVICE
+
+  config:
+    import: optional:configserver:http://localhost:8085
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://dev-92186112.okta.com/oauth2/default
+      client:
+        registration:
+          my-internal-client:
+            provider: okta
+            authorization-grant-type: client_credentials
+            scope: internal
+            client-id: 0oaf6irh2yLyR1ksN5d7
+            client-secret: b4NwrD6zZ_hkioz_x39lNsodARoXb81GZIDPDbOhc_S55nS7iD6OfC1dnTkFBzmp
+        provider:
+          okta:
+            issuer-uri: https://dev-92186112.okta.com/oauth2/default
+
+management:
+  health:
+    circuitbreakers:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+  endpoint:
+    health:
+      show-details: always
+
+
+resilience4j.circuitbreaker:
+  instances:
+    ratingHotelBreaker:
+      registerHealthIndicator: true
+      slidingWindowSize: 10
+      minimumNumberOfCalls: 5
+      permittedNumberOfCallsInHalfOpenState: 3
+      slidingWindowType: COUNT_BASED
+      automaticTransitionFromOpenToHalfOpenEnabled: true
+      waitDurationInOpenState: 6s
+      failureRateThreshold: 50
+      eventConsumerBufferSize: 10
+
+resilience4j.retry:
+  instances:
+    ratingHotelService:
+      max-attempts: 3
+      wait-duration: 5s
+
+resilience4j.ratelimiter:
+  instances:
+    userRateLimiter:
+      limit-refresh-period: 4s # Number of calls permitted during the limitRefreshPeriod
+      limit-for-period: 2 # Period of a limit refresh. After each period the rate limiter sets its permissions count back to the limitForPeriod value.
+      timeout-duration: 2s # Maximum wait duration for permission if the rate limiter is full. If the wait time exceeds this duration, a request will be failed.
+
+okta:
+  oauth2:
+    issuer: https://dev-92186112.okta.com/oauth2/default
+    audience: api://default
+
+
+#  profiles:
+#    active: prod
+
+#eureka:
+#  instance:
+#    prefer-ip-address: true
+#  client:
+#    fetch-registry: true
+#    register-with-eureka: true
+#    service-url:
+#      defaultZone: http://localhost:8761/eureka
